@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Buy Item 1</title>
+    <style>
+      /* Основные стили для контейнера */
+      #card-element {
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          padding: 10px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: border-color 0.3s, box-shadow 0.3s;
+      }
+
+      /* Стили для фокуса */
+      #card-element:focus-within {
+          border-color: #007bff;
+          box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+      }
+
+      /* Стили для ошибок */
+      #card-element.StripeElement--invalid {
+          border-color: #e74c3c;
+      }
+
+      /* Стили для текста */
+      #card-element .Input {
+          font-size: 16px;
+          color: #333;
+      }
+
+      #card-element .Label {
+          font-size: 14px;
+          color: #777;
+      }
+
+  
+
+
+      /* Стили для статуса платежа */
+      #payment-status {
+          margin-top: 20px;
+          font-size: 16px;
+          color: #555;
+      }
+
+      #payment-status.success {
+          color: green;
+      }
+
+      #payment-status.error {
+          color: red;
+      }
+  </style>
+  </head>
+  <body>
+
+    {% if error %}
+      {{ error }}
+    {% endif %}
+    {% for item in object.items.all %}
+      <h1>{{ item.name }}</h1>
+      <p>{{ item.description }}</p>
+      <p>{{ item.price }}{{ item.currency }}</p>
+    {% endfor %}
+    <button id="buy-button">Оплатить через Checkout</button>
+    
+    <button id="payment-intent-button">Оплатить через Payment Intent</button>
+
+    <div id="payment-status"></div>
+    <div id="card-element"></div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script type="text/javascript">
+      var stripe = Stripe('{{ public_key }}');
+      var buyButton = document.getElementById('buy-button');
+      buyButton.addEventListener('click', function() {
+        console.log('Buy button clicked');
+        fetch('/buy/'  + {{ object.id }} + '?order=True', {method: 'GET'})
+        .then(response => response.json())
+        .then(session => stripe.redirectToCheckout({ sessionId: session.id }))
+      });
+
+      var elements = stripe.elements();
+      var card = elements.create('card');
+      card.mount('#card-element');
+
+
+      document.getElementById('payment-intent-button').addEventListener('click', async () => {
+        const response = await fetch('/create-payment-intent/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'  
+            },
+            body: JSON.stringify({ order_id: {{ order.id }} }) 
+        });
+        const { clientSecret } = await response.json();
+    
+        const result = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+                card: card,
+                billing_details: {
+                    name: 'Customer Name'
+                }
+            }
+        });
+    
+        if (result.error) {
+            console.error(result.error.message);
+            document.getElementById('payment-status').innerText = `Ошибка: ${result.error.message}`;
+        } else {
+            const paymentIntent = result.paymentIntent;
+            console.log(paymentIntent);
+            switch (paymentIntent.status) {
+                case 'succeeded':
+                    document.getElementById('payment-status').innerText = 'Платеж успешен!';
+                    break;
+                case 'processing':
+                    document.getElementById('payment-status').innerText = 'Платеж обрабатывается...';
+                    break;
+                case 'requires_payment_method':
+                    document.getElementById('payment-status').innerText = 'Требуется другой способ оплаты.';
+                    break;
+                case 'requires_confirmation':
+                    document.getElementById('payment-status').innerText = 'Требуется подтверждение платежа.';
+                    break;
+                case 'requires_action':
+                    document.getElementById('payment-status').innerText = 'Требуется дополнительное действие.';
+                    break;
+                case 'canceled':
+                    document.getElementById('payment-status').innerText = 'Платеж отменен.';
+                    break;
+                default:
+                    document.getElementById('payment-status').innerText = `Неизвестный статус: ${paymentIntent.status}`;
+            }
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: bash -c "python manage.py makemigrations payment && python manage.py migrate && (python manage.py createsuperuser --noinput --username admin --email admin@example.com 2>/dev/null || true) && gunicorn --bind 0.0.0.0:8000 stripe-django.wsgi:application"
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - db_volume:/app/db  # Для сохранения SQLite-файла
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SUPERUSER_USERNAME=root
+      - DJANGO_SUPERUSER_PASSWORD=root
+
+volumes:
+  db_volume:
+  static_volume:

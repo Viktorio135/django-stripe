@@ -1,0 +1,52 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db/  # Исключаем директорию с SQLite (если используется)
+media/
+staticfiles/
+
+# Docker
+.env
+docker-compose.override.yml
+*.env.*
+
+# Локальные файлы Docker
+data/  # Тома Docker (если используются)
+.dockerignore
+
+# Виртуальное окружение
+venv/
+.env/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+
+# Операционные системы
+.DS_Store
+Thumbs.db
+
+# Статика после collectstatic (если не используются WhiteNoise)
+static/
+
+# Миграции (если не коммитятся)
+*/migrations/*.py
+!*/migrations/__init__.py
+
+# Тестовые данные и кэш
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Локальные настройки и секреты
+secrets.json
+config.yml

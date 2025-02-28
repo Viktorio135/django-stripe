@@ -11,7 +11,7 @@ from django.conf import settings
 
 from .models import Item, Order
 
-
+stripe.log = 'info'
 
 class ItemDetailView(DetailView):
     """Представление для item ('/item/{id}')"""
